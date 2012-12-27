@@ -1,0 +1,7 @@
+//
+// Prefix header for all source files of the 'testtuples' target in the 'testtuples' project
+//
+
+#ifdef __OBJC__
+    #import <Foundation/Foundation.h>
+#endif
