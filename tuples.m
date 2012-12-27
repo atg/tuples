@@ -1,5 +1,16 @@
 #import "tuples.h"
 
+#if __has_feature(objc_arc)
+ #define arc_unsafe_unretained __unsafe_unretained
+ #define arc_autoreleasing __autoreleasing
+ #define arc_bridge(t, x) ((__bridge t)x)
+#else
+ #define arc_unsafe_unretained
+ #define arc_autoreleasing
+ #define arc_bridge(t, x) (x)
+#endif
+
+
 id tupleSentinel() {
     static id sentin;
     static dispatch_once_t onceToken;
@@ -43,7 +54,7 @@ id tupleSentinel() {
         return nil;
     
     for (id obj in arr) {
-        [storage addPointer:(__bridge void *)obj];
+        [storage addPointer:arc_bridge(void*, obj)];
     }
     
     return self;
@@ -59,7 +70,7 @@ id tupleSentinel() {
     id obj = objects;
     id sentin = tupleSentinel();
     while (obj != sentin) {
-        [storage addPointer:(__bridge void *)obj];
+        [storage addPointer:arc_bridge(void*, obj)];
         obj = va_arg(ap, id);
     }
     va_end(ap);
@@ -73,7 +84,7 @@ id tupleSentinel() {
     [newtup _setStorage:[[self _storage] copy]];
     return newtup;
 }
-- (NSUInteger)countByEnumeratingWithState:(NSFastEnumerationState *)state objects:(id __unsafe_unretained [])stackbuf count:(NSUInteger)len {
+- (NSUInteger)countByEnumeratingWithState:(NSFastEnumerationState *)state objects:(id arc_unsafe_unretained [])stackbuf count:(NSUInteger)len {
     return [storage countByEnumeratingWithState:state objects:stackbuf count:len];
 }
 
@@ -103,12 +114,12 @@ id tupleSentinel() {
     va_list ap;
     va_start(ap, pointypointers); 
     
-    __autoreleasing id* pp = pointypointers;
+    arc_autoreleasing id* pp = pointypointers;
     int i = 0;
     while (pp != NULL) {
         *pp = [self objectAtIndex:i];
         
-        pp = va_arg(ap, __autoreleasing id*);
+        pp = va_arg(ap, arc_autoreleasing id*);
         i++;
     }
     va_end(ap);
@@ -122,7 +133,7 @@ id tupleSentinel() {
     NSPointerArray* newstorage = [newtup _storage];
     for (int i = 0, n = (int)[newstorage count]; i != n; i++) {
         id old = (__strong id)[storage pointerAtIndex:i];
-        [newstorage replacePointerAtIndex:i withPointer:(__bridge void *)mapping(old)];
+        [newstorage replacePointerAtIndex:i withPointer:arc_bridge(void*, mapping(old))];
     }
     
     return newtup;
