@@ -9,6 +9,13 @@ id tupleSentinel() {
     return sentin;
 }
 
+@interface Tuple ()
+
+- (NSPointerArray*)_storage;
+- (void)_setStorage:(NSPointerArray*)newstorage;
+
+@end
+
 @implementation Tuple {
     NSPointerArray* storage;
 }
@@ -19,30 +26,14 @@ id tupleSentinel() {
     storage = newstorage;
 }
 
+
+// Initialization
 - (id)init {
     self = [super init];
     if (!self)
         return nil;
     
     storage = [NSPointerArray pointerArrayWithOptions:NSPointerFunctionsStrongMemory | NSPointerFunctionsObjectPersonality];
-    
-    return self;
-}
-- (id)initWithObjects:(id)objects, ... {
-    self = [self init];
-    if (!self)
-        return nil;
-    
-    va_list ap;
-    va_start(ap, objects); 
-    
-    id obj = objects;
-    id sentin = tupleSentinel();
-    while (obj != sentin) {
-        [storage addPointer:(__bridge void *)obj];
-        obj = va_arg(ap, id);
-    }
-    va_end(ap);
     
     return self;
 }
@@ -57,12 +48,36 @@ id tupleSentinel() {
     
     return self;
 }
+- (id)initWithObjects:(id)objects, ... {
+    self = [self init];
+    if (!self)
+        return nil;
+    
+    va_list ap;
+    va_start(ap, objects);
+    
+    id obj = objects;
+    id sentin = tupleSentinel();
+    while (obj != sentin) {
+        [storage addPointer:(__bridge void *)obj];
+        obj = va_arg(ap, id);
+    }
+    va_end(ap);
+    
+    return self;
+}
+
+// Protocolic Obligations
 - (id)copyWithZone:(NSZone *)zone {
     id newtup = [[[self class] alloc] init];
     [newtup _setStorage:[[self _storage] copy]];
     return newtup;
 }
+- (NSUInteger)countByEnumeratingWithState:(NSFastEnumerationState *)state objects:(id __unsafe_unretained [])stackbuf count:(NSUInteger)len {
+    return [storage countByEnumeratingWithState:state objects:stackbuf count:len];
+}
 
+// Getting an object at an index
 - (id)objectAtIndexedSubscript:(NSUInteger)idx {
     return [self objectAtIndex:(int)idx];
 }
@@ -82,6 +97,7 @@ id tupleSentinel() {
     return [self objectAtIndex:2];
 }
 
+// Unpacking
 - (void)unpack:(id*)pointypointers, ... {
     
     va_list ap;
@@ -98,6 +114,8 @@ id tupleSentinel() {
     va_end(ap);
     
 }
+
+// Algorithms
 - (Tuple*)map:(id (^)(id x))mapping {
     
     Tuple* newtup = [self copy];
@@ -108,10 +126,6 @@ id tupleSentinel() {
     }
     
     return newtup;
-}
-
-- (NSUInteger)countByEnumeratingWithState:(NSFastEnumerationState *)state objects:(id __unsafe_unretained [])stackbuf count:(NSUInteger)len {
-    return [storage countByEnumeratingWithState:state objects:stackbuf count:len];
 }
 
 @end
